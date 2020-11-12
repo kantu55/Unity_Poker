@@ -18,13 +18,14 @@ public class AutoPlay : MonoBehaviour
         public int num;
         public int mark;
         public bool leave;
+        public bool straight;
     };
     
 
     // Start is called before the first frame update
     void Start()
     {
-        
+        Time.timeScale = 10.0f;
     }
 
     // Update is called once per frame
@@ -43,12 +44,85 @@ public class AutoPlay : MonoBehaviour
     {
         bool straight = true;
         bool flush = true;
+        int straightCount = 0;
+        bool straightReach = true;
+        int wrong_num = 0;
+
         for (int i = 1; i < cards.Length; i++)
         {
             if (cards[i - 1].num + 1 != cards[i].num)
             {
+                if(straightCount > 0)
+                {
+                    wrong_num = i - 1;
+                }
+                straightCount++;
                 straight = false;
-                break;
+            }
+        }
+        if(straightCount <= 2 && !straight)
+        {
+            int count = 0;
+            int n = 0;
+            int leave_num = 0;
+            cards[0].straight = true;
+            if(wrong_num == 0)
+            {
+                if(cards[0].num == cards[1].num - 1)
+                {
+                    wrong_num = 4;
+                }
+                else
+                {
+                    n = cards[0].num;
+                    cards[0].num = cards[1].num - 1;
+                    leave_num = 0;
+                    cards[0].straight = false;
+                }
+            }
+            for (int i = 1; i < cards.Length; i++)
+            {
+                cards[i].straight = false;
+                if (cards[0].num + i != cards[i].num)
+                {
+                    if (count == 0)
+                    {
+                        n = cards[i].num;
+                        cards[i].num = cards[0].num + i;
+                        leave_num = i;
+                        count++;
+                    }
+                }
+                else
+                {
+                    cards[i].straight = true;
+                }
+                if (cards[i - 1].num + 1 != cards[i].num)
+                {
+                    straightReach = false;
+                    cards[i - 1].num = n;
+                    break;
+                }
+            }
+            if (straightReach)
+            {
+                Time.timeScale = 0.5f;
+                float prob = (float)card.remain(cards[leave_num].num) / (float)card.remain() * 100.0f;
+                if (leave_num == 0 || leave_num == 4)
+                    prob *= 2.0f;
+                if (prob >= 7)
+                {
+                    for (int i = 0; i < cards.Length; i++)
+                    {
+                        if (cards[i].straight)
+                        {
+                            cards[i].leave = true;
+                        }
+                    }
+                }
+                else
+                    straightReach = false;
+                cards[leave_num].num = n;
             }
         }
         for (int i = 1; i < cards.Length; i++)
@@ -66,7 +140,7 @@ public class AutoPlay : MonoBehaviour
                 cards[i].leave = true;
             }
         }
-        else
+        else if(!straightReach)
         {
             int[] n = new int[15];
             for (int i = 0; i < cards.Length; i++)
@@ -120,21 +194,42 @@ public class AutoPlay : MonoBehaviour
             }
             if (pair == 2)
             {
-                float prob_A = card.remain(pairs[0]) / card.remain();
-                prob_A *= 100;
-                print(prob_A);
-                float prob_B = pairs[1] / card.remain();
-                prob_B *= 100;
-                print(prob_B);
-                for (int i = 0; i < 5; i++)
+                float prob_A = (float)card.remain(pairs[0]) / (float)card.remain() * 100.0f;
+                float prob_B = (float)card.remain(pairs[1]) / (float)card.remain() * 100.0f;
+                int prob = 0;
+                int remain_num = 0;
+                if (prob_A > prob_B)
                 {
-                    if (cards[i].num == pairs[pair - 1])
+                    prob = (int)prob_A;
+                    remain_num = 0;
+                }
+                else
+                {
+                    prob = (int)prob_B;
+                    remain_num = 1;
+                }
+                if(prob <= 5)
+                {
+                    for (int i = 0; i < 5; i++)
                     {
-                        cards[i].leave = true;
+                        if (cards[i].num == pairs[0])
+                        {
+                            cards[i].leave = true;
+                        }
+                        else if (cards[i].num == pairs[1])
+                        {
+                            cards[i].leave = true;
+                        }
                     }
-                    else if (cards[i].num == pairs[pair - 2])
+                }
+                else
+                {
+                    for (int i = 0; i < 5; i++)
                     {
-                        cards[i].leave = true;
+                        if (cards[i].num == pairs[remain_num])
+                        {
+                            cards[i].leave = true;
+                        }
                     }
                 }
             }
@@ -142,7 +237,7 @@ public class AutoPlay : MonoBehaviour
             {
                 for (int i = 0; i < 5; i++)
                 {
-                    if (cards[i].num == pairs[pair - 1])
+                    if (cards[i].num == pairs[0])
                     {
                         cards[i].leave = true;
                     }
@@ -180,6 +275,7 @@ public class AutoPlay : MonoBehaviour
             cards[i].num = game.getHandNumber(i);  //i番目の手札の番号を取得
             cards[i].mark = game.getHandMark(i);
             cards[i].leave = false;
+            cards[i].straight = false;
         }
         cards = CheckCard(cards);
         for (int i = 0; i < 5; i++)
