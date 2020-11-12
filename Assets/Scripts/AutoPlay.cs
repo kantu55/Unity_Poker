@@ -11,8 +11,6 @@ public class AutoPlay : MonoBehaviour
     public gameRule.eHand pastHand; //前ゲームでの役
     public int pastScore;   //前ゲームでのスコア
     public cardManager.eKind currentMark;
-    
-
     public gameRule.eHand currentHand;
 
     struct Card
@@ -122,6 +120,12 @@ public class AutoPlay : MonoBehaviour
             }
             if (pair == 2)
             {
+                float prob_A = card.remain(pairs[0]) / card.remain();
+                prob_A *= 100;
+                print(prob_A);
+                float prob_B = pairs[1] / card.remain();
+                prob_B *= 100;
+                print(prob_B);
                 for (int i = 0; i < 5; i++)
                 {
                     if (cards[i].num == pairs[pair - 1])
@@ -144,14 +148,31 @@ public class AutoPlay : MonoBehaviour
                     }
                 }
             }
+            else if(pair == 0 && !three && !four)
+            {
+                int[] c = new int[5];
+                int remain = 0;
+                int remain_num = 0;
+                for (int i = 0; i < 5; i++)
+                {
+                    c[i] = card.remain(cards[i].num);
+                    if(c[i] > remain)
+                    {
+                        remain = c[i];
+                        remain_num = i;
+                    }
+                }
+                if (remain == 0)
+                    cards[4].leave = true;
+                else
+                    cards[remain_num].leave = true;
+            }
         }
         return cards;
     }
 
     void Change_Card()
     {
-        print(card.remain(3));
-
         Card[] cards = new Card[5];
         
         for (int i = 0; i < 5; i++)
